@@ -33,26 +33,27 @@ u32 intern(const char *str, int len)
 	u32 n;
 	bool added_str = false;
 	u32 new_hash =  hash(str, len);
-	string_entry e = {new_hash, data_index};
+	string_entry e = {data_index, new_hash};
 	if(data_index+len >= size)
-		data = realloc(data, (size=size*3/2));
+		data = realloc(data, (size*=2));
 
 	for(n=0; n<table_len; n++)
 	{
 		u32 i = (e.h+n)%table_len;
 		if(table[i].h == 0)
 		{
-			table[i] = e;
 			if(!added_str)
 			{
 				strcpy(&data[data_index], str);
 				data_index += len+1;
 			}
+			table[i] = e;
 			return new_hash;
 		}
 		if(table[i].h == e.h)
 		{
-			if(strcmp(&data[table[i].str], &data[e.str])!=0)
+			if(strcmp(&data[table[i].str],
+						added_str ? &data[e.str] : str )!=0)
 				error("Strings '%s' and '%s' have the same hash!\n",
 						&data[table[i].str], &data[e.str]);
 			return new_hash;
