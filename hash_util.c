@@ -3,14 +3,17 @@
 #include "types.h"
 #include "hash.h"
 
-int main(int argc, char **argv)
+int main()
 {
-	if(argc == 1)
-		puts("Prints out the hash of each argument in hexadecimal");
-	int i;
-	for(i=1; i<argc; i++)
+	char buf[256];
+	while(!feof(stdin))
 	{
-		printf("0x%08x\n", hash(argv[i], strlen(argv[i])));
+		if(!fgets(buf, 256, stdin) && !feof(stdin))
+			return 1;
+		int i = 0;
+		while(buf[i] != '\n' && buf[i] != 0) i++;
+		if(buf[i] == '\n') buf[i] = 0;
+		printf("0x%08x //%s\n", hash(buf, i), buf);
 	}
 	return 0;
 }

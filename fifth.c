@@ -50,6 +50,8 @@ u32 read_string_until_char(const char *str, char c)
 	return str_index;
 }
 
+bool predicate = false;
+
 void eval_function(const char *name, u32 len);
 
 void eval_string(const char *str)
