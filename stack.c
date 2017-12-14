@@ -26,3 +26,10 @@ u64 pop()
 	return stack[--i];
 }
 
+u64 peek()
+{
+	if(!i)
+		error("Stack underflow! (peek)\n");
+	return stack[i-1];
+}
+
