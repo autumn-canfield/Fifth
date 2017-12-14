@@ -6,73 +6,56 @@
 #include "intern.h"
 #include "hash.h"
 
-typedef struct {
-	u32 str;
-	u32 h;
-} string_entry;
-
-static string_entry *table;
-static u32 table_len = 0x1000; //Must be a power of two
-static char *data;
-static u32 data_index = 0;
-static u32 size = 0x1000*16;
-
-void init_intern_table()
+static inline u32 probe_count(u32 len, u32 h, u32 i)
 {
-	table = malloc(sizeof(string_entry)*table_len);
-	data = malloc(size);
+	return (len+i-(h%len))%len;
 }
 
-static inline u32 probe_count(u32 h, u32 i)
-{
-	return (table_len+i-(h&(table_len-1)))&(table_len-1);
-}
-
-u32 intern(const char *str, int len)
+u32 intern(intern_table *t, const char *str, int len)
 {
 	u32 n;
 	bool added_str = false;
 	u32 new_hash =  hash(str, len);
-	string_entry e = {data_index, new_hash};
-	if(data_index+len >= size)
-		data = realloc(data, (size*=2));
+	string_entry e = {t->data_index, new_hash};
+	if(t->data_index+len >= t->data_size)
+		t->data = realloc(t->data, (t->data_size*=2));
 
-	for(n=0; n<table_len; n++)
+	for(n=0; n<t->len; n++)
 	{
-		u32 i = (e.h+n)%table_len;
-		if(table[i].h == 0)
+		u32 i = (e.h+n)%t->len;
+		if(t->entries[i].h == 0)
 		{
 			if(!added_str)
 			{
-				strcpy(&data[data_index], str);
-				data_index += len+1;
+				strcpy(&t->data[t->data_index], str);
+				t->data_index += len+1;
 			}
-			table[i] = e;
+			t->entries[i] = e;
 			return new_hash;
 		}
-		if(table[i].h == e.h)
+		if(t->entries[i].h == e.h)
 		{
-			if(strcmp(&data[table[i].str],
-						added_str ? &data[e.str] : str )!=0)
+			if(strcmp(&t->data[t->entries[i].str],
+						added_str ? &t->data[e.str] : str )!=0)
 				error("Strings '%s' and '%s' have the same hash!\n",
-						&data[table[i].str], &data[e.str]);
+						&t->data[t->entries[i].str], &t->data[e.str]);
 			return new_hash;
 		}
-		if(probe_count(table[i].h, i) < n)
+		if(probe_count(t->len, t->entries[i].h, i) < n)
 		{
 			if(!added_str)
 			{
 				added_str = true;
-				strcpy(&data[data_index], str);
-				data_index += len+1;
+				strcpy(&t->data[t->data_index], str);
+				t->data_index += len+1;
 			}
-			string_entry tmp = table[i];
-			table[i] = e;
+			string_entry tmp = t->entries[i];
+			t->entries[i] = e;
 			e = tmp;
-			n = probe_count(table[i].h, i);
+			n = probe_count(t->len, t->entries[i].h, i);
 		}
 	}
-	error("Intern table overflowed! (x%x)\n", table_len);
+	error("Intern table overflowed! (x%x)\n", t->len);
 	return 0;
 }
 
